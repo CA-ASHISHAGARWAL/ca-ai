@@ -1,0 +1,62 @@
+# Agra CA-AI Backend
+
+This is the backend server for the **Agra Chartered Accountant AI System**.
+
+It connects to:
+- **ChatGPT (OpenAI)**
+- **Gemini (Google)**
+- **Perplexity (Sonar Model)**
+
+and returns combined CA-specific output for:
+- Financial Statements  
+- CMA Data  
+- GST/Income Tax Replies  
+- Notices  
+- Financial Analysis  
+- Excel/TB Parsing  
+
+---
+
+## 🚀 How it works
+The backend receives a query from the frontend → masks personal data → sends the cleaned prompt to all 3 AI engines → combines the output → returns JSON.
+
+---
+
+## 📌 Environment Variables
+
+Create a `.env` file in the backend folder:
+
+
+---
+
+## 🧠 Start Server (local use)
+
+The server runs on:
+
+---
+
+## 🌐 Deployment
+
+### Recommended: **Render**
+- Add a new “Web Service”
+- Connect your GitHub repo
+- Root Directory: `backend`
+- Start Command: `node server.js`
+- Runtime: Node 18
+
+---
+
+## ✔ API Endpoint
+
+### POST `/process`
+Send this JSON:
+
+```json
+{
+  "query": "Prepare CMA for last year's TB"
+}
+{
+  "chatgpt": "...",
+  "gemini": "...",
+  "perplexity": "..."
+}
