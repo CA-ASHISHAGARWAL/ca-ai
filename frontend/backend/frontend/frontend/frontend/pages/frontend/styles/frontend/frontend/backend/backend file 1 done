@@ -1,0 +1,128 @@
+import express from "express";
+import axios from "axios";
+import dotenv from "dotenv";
+import cors from "cors";
+
+dotenv.config();
+const app = express();
+
+app.use(cors());
+app.use(express.json({ limit: "50mb" }));
+
+// -------------------------------
+// MASK PERSONAL INFORMATION
+// -------------------------------
+function maskPII(text) {
+  if (!text) return text;
+  return text
+    .replace(/\b\d{10}\b/g, "[PHONE]")
+    .replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, "[EMAIL]")
+    .replace(/\b\d{12}\b/g, "[AADHAAR]")
+    .replace(/\b\d{15}\b/g, "[GST]")
+    .replace(/\b\d{10}[A-Z]\b/gi, "[PAN]");
+}
+
+// -------------------------------
+// AI CALLER FUNCTIONS
+// -------------------------------
+
+// 1️⃣ ChatGPT
+async function callChatGPT(prompt) {
+  try {
+    const response = await axios.post(
+      "https://api.openai.com/v1/chat/completions",
+      {
+        model: "gpt-4o-mini",
+        messages: [{ role: "user", content: prompt }],
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        }
+      }
+    );
+    return response.data.choices[0].message.content;
+  } catch (err) {
+    return "ChatGPT API Error";
+  }
+}
+
+// 2️⃣ Gemini
+async function callGemini(prompt) {
+  try {
+    const response = await axios.post(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${process.env.GEMINI_API_KEY}`,
+      {
+        contents: [{ parts: [{ text: prompt }] }]
+      }
+    );
+    return response.data.candidates[0].content.parts[0].text;
+  } catch (err) {
+    return "Gemini API Error";
+  }
+}
+
+// 3️⃣ Perplexity
+async function callPerplexity(prompt) {
+  try {
+    const response = await axios.post(
+      "https://api.perplexity.ai/chat/completions",
+      {
+        model: "sonar-pro",
+        messages: [{ role: "user", content: prompt }]
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.PERPLEXITY_API_KEY}`,
+        }
+      }
+    );
+    return response.data.choices[0].message.content;
+  } catch (err) {
+    return "Perplexity API Error";
+  }
+}
+
+// -------------------------------
+// MASTER AI ROUTE
+// -------------------------------
+app.post("/process", async (req, res) => {
+  const { query } = req.body;
+
+  const cleanQuery = maskPII(query);
+
+  const prompt = `
+You are CA-AI for a Chartered Accountant in Agra.
+Prepare: FS, CMA, Tax Notices, Replies, Computations, Analysis.
+
+INPUT:
+${cleanQuery}
+
+OUTPUT MUST BE:
+- Step-by-step
+- Clean format
+- CA Professional language
+- No disclaimers
+`;
+
+  const gpt = await callChatGPT(prompt);
+  const gemini = await callGemini(prompt);
+  const perp = await callPerplexity(prompt);
+
+  res.json({
+    chatgpt: gpt,
+    gemini: gemini,
+    perplexity: perp
+  });
+});
+
+// -------------------------------
+app.get("/", (req, res) => {
+  res.send("Agra CA-AI Backend Running");
+});
+
+// -------------------------------
+const PORT = process.env.PORT || 8000;
+app.listen(PORT, () => {
+  console.log("Backend running on port " + PORT);
+});
